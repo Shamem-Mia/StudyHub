@@ -12,7 +12,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import VerifyOTPPage from "./pages/VerifyOTPPage";
 import ProfilePage from "./pages/ProfilePage";
-import GetPdfByNotesPage from "./pages/getPdfByNotesPage";
+import GetPdfByNotesPage from "./pages/GetPdfByNotesPage";
 import GetPdfBySlidesPage from "./pages/GetPdfBySlidesPage";
 import GetPdfByChowthaPage from "./pages/GetPdfByChowthaPage";
 import GetPdfByLabReportPage from "./pages/GetPdfByLabReportPage";
