@@ -3,6 +3,7 @@ import { BookOpen, Download, Search, X, Heart } from "lucide-react";
 import toast from "react-hot-toast";
 import PDFViewer from "../components/PDFViewer";
 import { axiosInstance } from "../context/axiosInstance";
+import Advertisements from "../components/Advertisements";
 
 const GetPdfBySlidesPage = () => {
   const [slides, setSlides] = useState([]);
@@ -71,8 +72,42 @@ const GetPdfBySlidesPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-        {/* Search and header section remains the same */}
-        {/* ... */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <BookOpen className="text-blue-600 mr-2" size={20} />
+            <h2 className="font-semibold text-xl">My Slides</h2>
+          </div>
+
+          <div className="relative w-full max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 pt-6 flex items-center pointer-events-none">
+              <Search className="text-gray-400" size={18} />
+            </div>
+            <label className="mb-1 text-sm font-medium text-gray-700">
+              Search by Institute, Course Name, or Title
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by institute, course, or title..."
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleResetSearch}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <X className="text-gray-400 hover:text-gray-600" size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-4 text-sm text-gray-600">
+          {filteredSlides.length}{" "}
+          {filteredSlides.length === 1 ? "slide" : "slides"} found
+          {searchTerm && ` matching "${searchTerm}"`}
+        </div>
       </div>
 
       {selectedSlide ? (
@@ -135,11 +170,26 @@ const GetPdfBySlidesPage = () => {
             ))
           ) : (
             <div className="col-span-full text-center py-12">
-              {/* No slides found message */}
+              <p className="text-gray-500">
+                {searchTerm
+                  ? `No slides found matching "${searchTerm}"`
+                  : "No slides available"}
+              </p>
+              {searchTerm && (
+                <button
+                  onClick={handleResetSearch}
+                  className="mt-4 text-blue-600 hover:text-blue-800"
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           )}
         </div>
       )}
+      <div className="fixed bottom-0 right-0 z-20">
+        <Advertisements />
+      </div>
     </div>
   );
 };

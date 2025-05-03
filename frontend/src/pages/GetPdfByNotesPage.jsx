@@ -60,7 +60,7 @@ const GetPdfByNotesPage = () => {
           </div>
 
           <div className="relative w-full max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-3 pt-6 flex items-center pointer-events-none">
               <Search className="text-gray-400" size={18} />
             </div>
             <label className="mb-1 text-sm font-medium text-gray-700">

@@ -44,5 +44,16 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+userSchema.index(
+  { verifyOtpExpireAt: 1 },
+  {
+    expireAfterSeconds: 0,
+    partialFilterExpression: {
+      isAccountVerified: false,
+      verifyOtpExpireAt: { $gt: 0 },
+    },
+  }
+);
+
 const User = mongoose.model("User", userSchema);
 export default User;

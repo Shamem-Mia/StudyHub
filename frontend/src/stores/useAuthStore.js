@@ -13,7 +13,9 @@ export const useAuthStore = create((set) => ({
       const response = await axiosInstance.get("/users/user-data");
       set({ authUser: response.data.user });
     } catch (error) {
-      console.log("error in checkAuth", error);
+      if (error.response?.status !== 401) {
+        console.log("error in checkAuth", error);
+      }
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
@@ -32,7 +34,6 @@ export const useAuthStore = create((set) => ({
       navigate("/verify-email", {
         state: {
           email: formData.email,
-          tempUserData: response.data.tempUserData,
         },
       });
 
@@ -48,19 +49,19 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  verifyAndCreate: async (email, otp, tempUserData, navigate) => {
+  verifyAndCreate: async (email, otp, navigate) => {
     set({ loading: true, error: "" });
 
     try {
       const response = await axiosInstance.post("/auth/verify-and-create", {
         email,
-        otp,
-        tempUserData,
+        otp: String(otp).trim(),
       });
       set({
         message: "Email verified successfully!",
+        authUser: response.data.user,
       });
-      set({ authUser: response.data });
+
       toast.success("Successfully registered!");
       navigate("/");
     } catch (error) {

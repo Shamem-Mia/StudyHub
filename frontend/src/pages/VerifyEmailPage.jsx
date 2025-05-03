@@ -11,7 +11,7 @@ const VerifyEmailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { email, tempUserData } = location.state || {};
+  const { email } = location.state || {};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +20,7 @@ const VerifyEmailPage = () => {
       return;
     }
 
-    verifyAndCreate(email, otp, tempUserData, navigate);
+    verifyAndCreate(email, otp, navigate);
   };
 
   const handleResendOtp = async () => {
@@ -44,8 +44,6 @@ const VerifyEmailPage = () => {
       if (response.data.updatedTempUserData) {
         location.state.tempUserData = response.data.updatedTempUserData;
       }
-
-      setMessage("New OTP sent to your email");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to resend OTP");
     } finally {
@@ -59,12 +57,6 @@ const VerifyEmailPage = () => {
         <h1 className="text-2xl font-bold text-orange-500 mb-6">
           Verify Your Email
         </h1>
-
-        {message && (
-          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-            {message}
-          </div>
-        )}
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">

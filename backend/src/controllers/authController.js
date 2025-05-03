@@ -30,13 +30,13 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create temporary user data (don't save yet)
-    const tempUserData = {
+    const tempUserData = new User({
       fullName,
       email,
       password: hashedPassword,
-      otp: OTP,
-      otpExpiry,
-    };
+      verifyOtp: OTP,
+      verifyOtpExpireAt: otpExpiry,
+    });
 
     // Email options
     const mailOptions = {
@@ -59,10 +59,11 @@ export const register = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
+    await tempUserData.save();
+
     res.status(200).json({
       success: true,
       message: "Verification email sent",
-      tempUserData,
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -70,45 +71,53 @@ export const register = async (req, res) => {
 };
 
 export const verifyAndCreateUser = async (req, res) => {
-  const { email, otp, tempUserData } = req.body;
+  const { email, otp } = req.body;
 
   try {
-    // Verify OTP
-    if (!tempUserData || tempUserData.otp !== otp) {
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required!",
+      });
+    }
+
+    const tempUserData = await User.findOne({ email });
+
+    if (!tempUserData) {
+      return res.status(400).json({
+        success: false,
+        message: "No verification request found for this email",
+      });
+    }
+
+    // Convert both OTPS to string for consistent comparison
+    const receivedOtp = String(otp).trim();
+    const storedOtp = String(tempUserData.verifyOtp).trim();
+
+    if (storedOtp !== receivedOtp) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP",
       });
     }
 
-    if (tempUserData.otpExpiry < Date.now()) {
+    if (tempUserData.verifyOtpExpireAt < Date.now()) {
+      await User.deleteOne({ _id: tempUserData._id });
       return res.status(400).json({
         success: false,
         message: "OTP expired",
       });
     }
 
-    // Check if user already exists (just in case)
-    const existingUser = await User.findOne({ email: tempUserData.email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
+    // Update the existing user instead of creating new one
+    tempUserData.isAccountVerified = true;
+    tempUserData.verifyOtp = undefined;
+    tempUserData.verifyOtpExpireAt = undefined;
 
-    // Create the actual user in database
-    const newUser = new User({
-      fullName: tempUserData.fullName,
-      email: tempUserData.email,
-      password: tempUserData.password,
-      isAccountVerified: true,
-    });
-
-    await newUser.save();
+    await tempUserData.save();
 
     // Generate token
-    const token = createToken(tempUserData.email, newUser.role);
+    const token = createToken(tempUserData.email, tempUserData.role);
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -119,15 +128,21 @@ export const verifyAndCreateUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Account created successfully",
-      id: newUser._id,
-      email: newUser.email,
-      fullName: newUser.fullName,
-      isAccountVerified: newUser.isAccountVerified,
-      role: newUser.role,
+      message: "Account verified successfully",
+      user: {
+        id: tempUserData._id,
+        email: tempUserData.email,
+        fullName: tempUserData.fullName,
+        isAccountVerified: tempUserData.isAccountVerified,
+        role: tempUserData.role,
+      },
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("Verification error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message || "Verification failed",
+    });
   }
 };
 
