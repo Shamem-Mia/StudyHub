@@ -1,10 +1,10 @@
 import { Course, CourseRequest } from "../models/courseModel.js";
-import { v2 as cloudinary } from "cloudinary";
 
 export const getAllCourses = async (req, res) => {
   try {
     const courses = await Course.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: { courses } });
+
+    res.status(200).json({ success: true, data: courses });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -143,8 +143,6 @@ export const getUserRequests = async (req, res) => {
     const requests = await CourseRequest.find({ user: req.user._id })
       .populate("course", "title price pin")
       .sort({ createdAt: -1 });
-
-    console.log("request:", requests);
 
     res.status(200).json({ success: true, data: { requests } });
   } catch (error) {

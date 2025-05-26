@@ -67,17 +67,52 @@ const App = () => {
         <Route path="/lab-reports" element={<GetPdfByLabReportPage />} />
         <Route path="/pyq" element={<GetPdfByPrevQuestionPage />} />
         <Route path="/books" element={<GetPdfByBookPage />} />
-        <Route path="/admin" element={<AdManagementSimplePage />} />
-        <Route path="/admin-control" element={<AdminPDFManagement />} />
 
         <Route path="/cgpa-calc" element={<CGPACalculator />} />
         <Route path="/code-editor" element={<CodeEditor />} />
         <Route path="/all-courses" element={<AllCourse />} />
-        <Route path="/handle-courses" element={<CourseHandleByAdmin />} />
-
-        {/* <Route path="/handle-selling" element={<RequestWebsite />} /> */}
         <Route path="/sell-web" element={<SellWebPage />} />
-        <Route path="/create-template" element={<WebTemplateCreatePage />} />
+
+        <Route
+          path="/admin"
+          element={
+            authUser && authUser.role === "admin" ? (
+              <AdManagementSimplePage />
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
+        <Route
+          path="/admin-control"
+          element={
+            authUser && authUser.role === "admin" ? (
+              <AdminPDFManagement />
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
+        <Route
+          path="/handle-courses"
+          element={
+            authUser && authUser.role === "admin" ? (
+              <CourseHandleByAdmin />
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
+        <Route
+          path="/create-template"
+          element={
+            authUser && authUser.role === "admin" ? (
+              <WebTemplateCreatePage />
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

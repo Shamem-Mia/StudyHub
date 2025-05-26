@@ -32,36 +32,30 @@ const AllCourse = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch courses
-        const { data: coursesData } = await axiosInstance.get("/courses");
+        const response = await axiosInstance.get("/courses");
         if (!isMounted) return;
 
-        const courses =
-          coursesData?.data?.courses || coursesData?.courses || [];
+        const courses = response.data?.data || [];
         setCourses(Array.isArray(courses) ? courses : []);
 
-        // Fetch requests
-        const { data: requestsData } = await axiosInstance.get(
-          "/courses/requests"
-        );
-
-        if (!isMounted) return;
-
-        let requests = [];
-        if (requestsData?.data?.requests) {
-          requests = requestsData.data.requests;
-        } else if (Array.isArray(requestsData?.requests)) {
-          requests = requestsData.requests;
-        } else if (Array.isArray(requestsData)) {
-          requests = requestsData;
+        try {
+          const requestsResponse = await axiosInstance.get("/courses/requests");
+          const requestsData = requestsResponse.data;
+          const requests =
+            requestsData?.data?.requests || requestsData?.requests || [];
+          setRequestedCourses(requests);
+        } catch (requestsError) {
+          console.log("Requests not fetched (user might not be logged in)");
         }
-
-        setRequestedCourses(requests);
       } catch (err) {
         if (!isMounted) return;
-        console.error("Fetch error:", err);
-        setError(err.message || "Failed to load data");
-        toast.error("Failed to load courses");
+
+        const errorMessage =
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to load courses";
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -207,42 +201,44 @@ const AllCourse = () => {
             filteredCourses.map((course, index) => (
               <div
                 key={course?._id || Math.random().toString(36).substr(2, 9)}
-                className={`bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${
+                className={`bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full ${
                   cardColors[index % cardColors.length]
                 }`}
               >
-                <div className="p-5">
-                  <div className="flex items-start mb-4">
-                    <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600 mr-3">
-                      <BookOpen size={20} />
+                <div className="p-5 flex flex-col h-full">
+                  <div className="flex-grow">
+                    <div className="flex items-start mb-4">
+                      <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600 mr-3">
+                        <BookOpen size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-800 line-clamp-2">
+                          {course?.title || "Untitled Course"}
+                        </h3>
+                        <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">
+                          {course?.category || "General"}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800 line-clamp-2">
-                        {course?.title || "Untitled Course"}
-                      </h3>
-                      <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">
-                        {course?.category || "General"}
-                      </span>
-                    </div>
-                  </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {course?.description || "No description available"}
-                  </p>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                      {course?.description || "No description available"}
+                    </p>
 
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Clock className="mr-1" size={16} />
-                      {course?.duration || "0"} weeks
-                    </div>
-                    <div className="text-lg font-bold text-indigo-700">
-                      ৳{course?.price || "0"}
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center text-sm text-gray-700">
+                        <Clock className="mr-1" size={16} />
+                        {course?.duration || "0"} weeks
+                      </div>
+                      <div className="text-lg font-bold text-indigo-700">
+                        ৳{course?.price || "0"}
+                      </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => handleRequestClick(course)}
-                    className={`w-full py-2 px-4 rounded-lg font-medium transition-all ${
+                    className={`w-full py-2 px-4 rounded-lg font-medium transition-all mt-auto ${
                       requestedCourses?.some(
                         (req) => req?.course?._id === course?._id
                       )
@@ -373,24 +369,6 @@ const AllCourse = () => {
                               {request?.course?.price !== undefined
                                 ? `$${request.course.price}`
                                 : "Free"}
-                            </p>
-                          </div>
-
-                          <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
-                            <p className="text-gray-500 text-sm font-medium">
-                              Course ID
-                            </p>
-                            <p className="text-gray-700 text-sm font-mono truncate">
-                              {request?.course?._id || "N/A"}
-                            </p>
-                          </div>
-
-                          <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
-                            <p className="text-gray-500 text-sm font-medium">
-                              Request ID
-                            </p>
-                            <p className="text-gray-700 text-sm font-mono truncate">
-                              {request?._id || "N/A"}
                             </p>
                           </div>
                         </div>
