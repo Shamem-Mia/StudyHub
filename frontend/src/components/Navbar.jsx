@@ -20,6 +20,11 @@ import {
   FileText,
   LibraryBig,
   UserPlus,
+  Calculator,
+  Code,
+  KeyIcon,
+  BugPlay,
+  ShoppingCart,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -155,28 +160,28 @@ const Navbar = () => {
           <div className="md:hidden flex flex-col items-center space-y-2 w-full py-2">
             <div className="flex space-x-4">
               <Link
-                to="/lab-reports"
+                to="/all-courses"
                 className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200"
                 onClick={() => setIsMobileSidebarOpen(false)}
               >
-                <FlaskConical className="h-6 w-6" />
-                <span className="text-sm mt-1">Lab Report</span>
+                <BookOpen className="h-6 w-6" />
+                <span className="text-sm mt-1">Courses</span>
               </Link>
               <Link
-                to="/notes"
+                to="/sell-web"
                 className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200"
                 onClick={() => setIsMobileSidebarOpen(false)}
               >
-                <FileText className="h-6 w-6" />
-                <span className="text-sm mt-1">Note</span>
+                <ShoppingCart className="h-6 w-6" />
+                <span className="text-sm mt-1">Get Website</span>
               </Link>
               <Link
-                to="/chowtha"
+                to="/cgpa-calc"
                 className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200"
                 onClick={() => setIsMobileSidebarOpen(false)}
               >
-                <LibraryBig className="h-6 w-6" />
-                <span className="text-sm mt-1">Chowtha</span>
+                <Calculator className="h-6 w-6" />
+                <span className="text-sm mt-1">Calculate CGPA</span>
               </Link>
             </div>
           </div>
@@ -184,25 +189,25 @@ const Navbar = () => {
           {/* Desktop - Show inline */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
-              to="/lab-reports"
+              to="/all-courses"
               className="flex items-center hover:text-blue-200 transition-colors duration-200"
             >
-              <FlaskConical className="h-5 w-5 mr-2" />
-              <span>Lab Report</span>
+              <BookOpen className="h-5 w-5 mr-2" />
+              <span>Courses</span>
             </Link>
             <Link
-              to="/notes"
+              to="/sell-web"
               className="flex items-center hover:text-blue-200 transition-colors duration-200"
             >
-              <FileText className="h-5 w-5 mr-2" />
-              <span>Note</span>
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              <span>Get Website</span>
             </Link>
             <Link
-              to="/chowtha"
+              to="/cgpa-calc"
               className="flex items-center hover:text-blue-200 transition-colors duration-200"
             >
-              <LibraryBig className="h-5 w-5 mr-2" />
-              <span>Chowtha</span>
+              <Calculator className="h-5 w-5 mr-2" />
+              <span>Calculate CGPA</span>
             </Link>
           </div>
         </div>
@@ -244,6 +249,45 @@ const Navbar = () => {
             text="Chowtha"
             onClick={() => setIsDesktopMenuOpen(false)}
           />
+          <NavLink
+            to="/code-editor"
+            icon={<Code size={18} />}
+            text="Code Editor"
+            onClick={() => setIsDesktopMenuOpen(false)}
+          />
+          <NavLink
+            to="/all-courses"
+            icon={<BookOpen size={18} />}
+            text="Courses"
+            onClick={() => setIsDesktopMenuOpen(false)}
+          />
+          <NavLink
+            to="/sell-web"
+            icon={<ShoppingCart size={18} />}
+            text="Buy Website"
+            onClick={() => setIsDesktopMenuOpen(false)}
+          />
+
+          {authUser && authUser.role === "admin" ? (
+            <NavLink
+              to="/create-template"
+              icon={<KeyIcon size={18} />}
+              text="Handle Web Selling"
+              onClick={() => setIsDesktopMenuOpen(false)}
+            />
+          ) : (
+            ""
+          )}
+          {authUser && authUser.role === "admin" ? (
+            <NavLink
+              to="/handle-courses"
+              icon={<GraduationCap size={18} />}
+              text="Handle Courses"
+              onClick={() => setIsDesktopMenuOpen(false)}
+            />
+          ) : (
+            ""
+          )}
           {authUser && authUser.role === "admin" ? (
             <NavLink
               to="/admin"
@@ -254,16 +298,6 @@ const Navbar = () => {
           ) : (
             ""
           )}
-          <button
-            onClick={() => {
-              handleRefresh();
-              setIsDesktopMenuOpen(false);
-            }}
-            className="w-full text-gray-800 hover:text-blue-600 flex items-center p-2 rounded hover:bg-blue-50 transition-colors duration-200"
-          >
-            <RefreshCw size={18} className="mr-3 text-blue-600" />
-            <span className="font-medium">Refresh</span>
-          </button>
 
           <div className="border-t border-gray-100 my-2"></div>
 
@@ -380,7 +414,45 @@ const Navbar = () => {
                     text="Chowtha"
                     closeSidebar={true}
                   />
+                  <NavLink
+                    to="/code-editor"
+                    icon={<Code size={18} />}
+                    text="Code Editor"
+                    closeSidebar={true}
+                  />
+                  <NavLink
+                    to="/all-courses"
+                    icon={<BookOpen size={18} />}
+                    text="Courses"
+                    closeSidebar={true}
+                  />
+                  <NavLink
+                    to="/sell-web"
+                    icon={<ShoppingCart size={18} />}
+                    text="Buy Website"
+                    closeSidebar={true}
+                  />
 
+                  {authUser && authUser.role === "admin" ? (
+                    <NavLink
+                      to="/create-template"
+                      icon={<KeyIcon size={18} />}
+                      text="Handle Web Selling"
+                      closeSidebar={true}
+                    />
+                  ) : (
+                    ""
+                  )}
+                  {authUser && authUser.role === "admin" ? (
+                    <NavLink
+                      to="/handle-courses"
+                      icon={<GraduationCap size={18} />}
+                      text="Handle Courses"
+                      closeSidebar={true}
+                    />
+                  ) : (
+                    ""
+                  )}
                   {authUser && authUser.role === "admin" ? (
                     <NavLink
                       to="/admin"

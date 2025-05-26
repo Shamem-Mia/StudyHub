@@ -1,4 +1,6 @@
 import PDF from "../models/uploadModel.js";
+import User from "../models/userModel.js";
+import { v2 as cloudinary } from "cloudinary";
 
 export const getNotes = async (req, res) => {
   try {
@@ -212,5 +214,103 @@ export const likePdf = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+// For admin
+
+export const getPdfForAmin = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { courseName: { $regex: search, $options: "i" } },
+        { instituteName: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [pdfs, total] = await Promise.all([
+      PDF.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      PDF.countDocuments(query),
+    ]);
+
+    res.json({
+      pdfs,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getUserForAdmin = async (req, res) => {
+  try {
+    const users = await User.find({}, "name email createdAt");
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updatePdfByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedPdf = await PDF.findByIdAndUpdate(id, req.body, { new: true });
+    res.json(updatedPdf);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deletePdfByAdmin = async (req, res) => {
+  try {
+    const pdf = await PDF.findById(req.params.id);
+
+    if (!pdf) return res.status(404).json({ error: "PDF not found" });
+
+    // Delete from Cloudinary
+    try {
+      await cloudinary.uploader.destroy(pdf.public_id, {
+        resource_type: "raw",
+      });
+    } catch (cloudErr) {
+      console.error("Cloudinary deletion failed:", cloudErr);
+    }
+
+    // Delete from database
+    await PDF.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "PDF deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteUserAndPdfsByAdmin = async (req, res) => {
+  try {
+    // First find all PDFs by this user
+    const userPdfs = await PDF.find({ userId: req.params.id });
+
+    // Delete all PDFs from Cloudinary
+    await Promise.all(
+      userPdfs.map((pdf) =>
+        cloudinary.uploader.destroy(pdf.public_id, { resource_type: "raw" })
+      )
+    );
+
+    // Delete all PDFs from database
+    await PDF.deleteMany({ userId: req.params.id });
+
+    // Finally delete the user
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "User and all their PDFs deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

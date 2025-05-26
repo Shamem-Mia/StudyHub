@@ -20,6 +20,14 @@ import GetPdfByBookPage from "./pages/GetPdfByBookPage";
 import GetPdfByPrevQuestionPage from "./pages/GetPdfByPrevQuestionPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AdManagementSimplePage from "./pages/AdManagementSimplePage";
+import AdminPDFManagement from "./pages/AdminPDFManagement";
+import CGPACalculator from "./pages/CGPACalculator";
+import CodeEditor from "./pages/CodeEditor";
+import AllCourse from "./pages/AllCourse";
+import CourseHandleByAdmin from "./pages/CourseHandleByAdmin";
+// import RequestWebsite from "./pages/RequestWebsite";
+import SellWebPage from "./pages/SellWebPage";
+import WebTemplateCreatePage from "./pages/WebTemplateCreatePage";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -60,6 +68,16 @@ const App = () => {
         <Route path="/pyq" element={<GetPdfByPrevQuestionPage />} />
         <Route path="/books" element={<GetPdfByBookPage />} />
         <Route path="/admin" element={<AdManagementSimplePage />} />
+        <Route path="/admin-control" element={<AdminPDFManagement />} />
+
+        <Route path="/cgpa-calc" element={<CGPACalculator />} />
+        <Route path="/code-editor" element={<CodeEditor />} />
+        <Route path="/all-courses" element={<AllCourse />} />
+        <Route path="/handle-courses" element={<CourseHandleByAdmin />} />
+
+        {/* <Route path="/handle-selling" element={<RequestWebsite />} /> */}
+        <Route path="/sell-web" element={<SellWebPage />} />
+        <Route path="/create-template" element={<WebTemplateCreatePage />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

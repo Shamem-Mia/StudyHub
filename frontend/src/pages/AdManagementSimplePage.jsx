@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Eye, EyeOff } from "lucide-react";
+import { Trash2, Eye, EyeOff, Key, BookLock, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../context/axiosInstance.js";
 import MarqueeManager from "../components/MarqueeManager.jsx";
+import { Link } from "react-router-dom";
 
 const AdManagementSimplePage = () => {
   const [ads, setAds] = useState([]);
@@ -88,6 +89,37 @@ const AdManagementSimplePage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Admin Control Link */}
+      <div className="mb-8 flex items-center justify-center">
+        <div className="flex flex-col lg:flex-row flex-wrap gap-4">
+          {/* PDF Dashboard */}
+          <Link
+            to="/admin-control"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition duration-200 shadow-md hover:shadow-lg"
+          >
+            <Key className="h-5 w-5" />
+            <span className="font-medium">PDF Management Dashboard</span>
+          </Link>
+
+          {/* Courses */}
+          <Link
+            to="/handle-courses"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition duration-200 shadow-md hover:shadow-lg"
+          >
+            <BookLock className="h-5 w-5" />
+            <span className="font-medium">Handle Courses</span>
+          </Link>
+
+          {/* Website Selling */}
+          <Link
+            to="/create-template"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition duration-200 shadow-md hover:shadow-lg"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            <span className="font-medium">Handle Website Selling</span>
+          </Link>
+        </div>
+      </div>
       <MarqueeManager />
       <h1 className="text-2xl font-bold mb-6">Advertisement Management</h1>
 
