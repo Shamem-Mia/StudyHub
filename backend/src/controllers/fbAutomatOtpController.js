@@ -1,15 +1,9 @@
 // controllers/fbAutomatOtpController.js
 import puppeteer from "puppeteer";
 import FacebookResult from "../models/fbAccAndOtpCheck.js";
-import ProcessingBatch from "../models/processingBatchModel.js";
 
 // Helper function for delay
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Generate unique batch ID
-const generateBatchId = () => {
-  return `BATCH_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
 
 export const fbAutomatOtpController = async (req, res) => {
   console.log("🚀 Facebook OTP automation started...");
@@ -23,22 +17,11 @@ export const fbAutomatOtpController = async (req, res) => {
   console.log(`📱 Processing ${phoneNumbers.length} phone numbers`);
 
   let browser;
-  const batchId = generateBatchId();
-  const batchStartTime = Date.now();
 
   try {
-    // Create batch record
-    const batchRecord = new ProcessingBatch({
-      batchId: batchId,
-      totalNumbers: phoneNumbers.length,
-      status: "processing",
-      startedAt: new Date(),
-    });
-    await batchRecord.save();
-    console.log(`📦 Created batch: ${batchId}`);
-
+    // Run in headless mode to hide the browser window
     browser = await puppeteer.launch({
-      headless: true,
+      headless: true, // Changed to true to hide browser window
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -70,18 +53,14 @@ export const fbAutomatOtpController = async (req, res) => {
 
     const results = [];
     let processedCount = 0;
-    let accountsFound = 0;
-    let otpsSent = 0;
-    let accountsFoundButNoOtp = 0;
-    let errorCount = 0;
 
     for (let i = 0; i < phoneNumbers.length; i++) {
       const phoneNumber = phoneNumbers[i];
       processedCount++;
-      const numberStartTime = Date.now();
-
       console.log(
-        `\n🔍 Processing ${i + 1}/${phoneNumbers.length}: ${phoneNumber}`
+        `\n🔍 === Processing number ${i + 1}/${
+          phoneNumbers.length
+        }: ${phoneNumber} ===`
       );
 
       try {
@@ -235,15 +214,9 @@ export const fbAutomatOtpController = async (req, res) => {
         let status = "no_account";
         if (exists && otpSent) {
           status = "account_found_otp_sent";
-          accountsFound++;
-          otpsSent++;
         } else if (exists && !otpSent) {
           status = "account_found_otp_not_sent";
-          accountsFound++;
-          accountsFoundButNoOtp++;
         }
-
-        const processingTime = Date.now() - numberStartTime;
 
         // Create result object
         const resultObj = {
@@ -254,12 +227,11 @@ export const fbAutomatOtpController = async (req, res) => {
           url: finalUrl,
           status,
           processedCount: processedCount,
-          processingTime: processingTime,
         };
 
         results.push(resultObj);
 
-        // Store in MongoDB with enhanced data
+        // Store in MongoDB
         try {
           const dbRecord = new FacebookResult({
             phoneNumber: phoneNumber,
@@ -270,22 +242,23 @@ export const fbAutomatOtpController = async (req, res) => {
             error: false,
             errorMessage: null,
             processedOrder: processedCount,
-            totalNumbersInBatch: phoneNumbers.length,
-            batchId: batchId,
-            processingTime: processingTime,
           });
 
           await dbRecord.save();
           console.log(
-            `💾 Saved: ${phoneNumber} - ${status} (${processingTime}ms)`
+            `💾 Saved to MongoDB: ${phoneNumber} - Status: ${status}`
           );
         } catch (dbError) {
           console.error(`❌ MongoDB save error:`, dbError.message);
         }
+
+        console.log(
+          `📊 Result: ${exists ? "✅ Account" : "❌ No Account"} | OTP: ${
+            otpSent ? "✅ Sent" : "❌ Not Sent"
+          }`
+        );
       } catch (error) {
         console.error(`💥 Error processing ${phoneNumber}:`, error.message);
-        errorCount++;
-        const processingTime = Date.now() - numberStartTime;
 
         const errorResult = {
           phone: phoneNumber,
@@ -296,7 +269,6 @@ export const fbAutomatOtpController = async (req, res) => {
           timestamp: new Date().toISOString(),
           status: "no_account",
           processedCount: processedCount,
-          processingTime: processingTime,
         };
 
         results.push(errorResult);
@@ -312,9 +284,6 @@ export const fbAutomatOtpController = async (req, res) => {
             error: true,
             errorMessage: error.message,
             processedOrder: processedCount,
-            totalNumbersInBatch: phoneNumbers.length,
-            batchId: batchId,
-            processingTime: processingTime,
           });
 
           await dbRecord.save();
@@ -323,24 +292,9 @@ export const fbAutomatOtpController = async (req, res) => {
         }
       }
 
-      // Update batch progress
-      try {
-        await ProcessingBatch.findOneAndUpdate(
-          { batchId: batchId },
-          {
-            numbersProcessed: processedCount,
-            accountsFound: accountsFound,
-            otpsSent: otpsSent,
-            accountsFoundButNoOtp: accountsFoundButNoOtp,
-            errorCount: errorCount,
-          }
-        );
-      } catch (batchError) {
-        console.error("❌ Batch update error:", batchError.message);
-      }
-
       // Navigate back for next number
       if (i < phoneNumbers.length - 1) {
+        console.log("🔄 Returning to start page for next number...");
         await page.goto(
           "https://www.facebook.com/login/identify/?ctx=recover&from_login_screen=0",
           { waitUntil: "domcontentloaded" }
@@ -349,58 +303,31 @@ export const fbAutomatOtpController = async (req, res) => {
       }
     }
 
-    // Complete batch processing
-    const totalProcessingTime = Date.now() - batchStartTime;
-    await ProcessingBatch.findOneAndUpdate(
-      { batchId: batchId },
-      {
-        status: "completed",
-        completedAt: new Date(),
-        processingTime: totalProcessingTime,
-        numbersProcessed: processedCount,
-        accountsFound: accountsFound,
-        otpsSent: otpsSent,
-        accountsFoundButNoOtp: accountsFoundButNoOtp,
-        errorCount: errorCount,
-      }
-    );
+    // Calculate summary
+    const accountsFound = results.filter((r) => r.exists && !r.error).length;
+    const otpsSent = results.filter((r) => r.otpSent).length;
+    const accountsFoundButNoOtp = results.filter(
+      (r) => r.exists && !r.otpSent && !r.error
+    ).length;
 
-    console.log(`\n🎊 Automation completed in ${totalProcessingTime}ms!`);
+    console.log(`\n🎊 Automation completed!`);
+    console.log(`📈 Summary: Processed ${phoneNumbers.length} numbers`);
 
     res.status(200).json({
       success: true,
       results,
-      batchId: batchId,
       summary: {
         totalProcessed: phoneNumbers.length,
         accountsFound,
         otpsSent,
         accountsFoundButNoOtp,
-        errorCount: errorCount,
+        errors: results.filter((r) => r.error).length,
         processedCount: processedCount,
-        processingTime: totalProcessingTime,
       },
-      message: `Processed ${phoneNumbers.length} numbers in ${(
-        totalProcessingTime / 1000
-      ).toFixed(2)}s`,
+      message: `Processed ${phoneNumbers.length} numbers, found ${accountsFound} accounts, sent ${otpsSent} OTPs`,
     });
   } catch (error) {
     console.error("💀 Main automation error:", error);
-
-    // Mark batch as failed
-    try {
-      await ProcessingBatch.findOneAndUpdate(
-        { batchId: batchId },
-        {
-          status: "failed",
-          completedAt: new Date(),
-          processingTime: Date.now() - batchStartTime,
-        }
-      );
-    } catch (batchError) {
-      console.error("❌ Batch failure update error:", batchError.message);
-    }
-
     res.status(500).json({
       success: false,
       message: "Automation failed",
