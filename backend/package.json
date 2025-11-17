@@ -9,6 +9,9 @@
     "dev": "nodemon index.js",
     "postinstall": "node node_modules/puppeteer/install.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {

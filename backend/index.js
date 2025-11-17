@@ -43,6 +43,18 @@ app.use("/api/courses", courseRouter);
 app.use("/api/sels", websiteRouter);
 app.use("/api/facebook-reset-check", fbOtpRouter);
 
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Facebook OTP Automation API is running!",
+    endpoints: {
+      health: "/health",
+      testPuppeteer: "/api/test-puppeteer",
+      facebookAutomation: "/api/facebook-reset-check",
+    },
+  });
+});
+
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 }

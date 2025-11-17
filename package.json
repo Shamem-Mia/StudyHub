@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
-    "start": "npm run start --prefix backend",
-    "postinstall": "node node_modules/puppeteer/install.js"
+    "start": "npm run start --prefix backend"
   },
   "keywords": [],
   "author": "",

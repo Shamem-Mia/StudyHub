@@ -1,5 +1,6 @@
 // controllers/fbAutomatOtpController.js
 import puppeteer from "puppeteer";
+import FacebookResult from "../models/fbAccAndOtpCheck.js";
 
 // Helper function for delay
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,9 +19,9 @@ export const fbAutomatOtpController = async (req, res) => {
   let browser;
 
   try {
-    // Production-ready Puppeteer configuration
+    // Run in headless mode to hide the browser window
     browser = await puppeteer.launch({
-      headless: true,
+      headless: true, // Changed to true to hide browser window
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -31,37 +32,19 @@ export const fbAutomatOtpController = async (req, res) => {
         "--disable-gpu",
         "--disable-web-security",
         "--disable-features=VizDisplayCompositor",
-        "--window-size=1920,1080",
-        "--single-process",
-        "--no-zygote",
       ],
-      executablePath:
-        process.env.NODE_ENV === "production"
-          ? process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium-browser"
-          : undefined,
-      defaultViewport: { width: 1920, height: 1080 },
-      ignoreHTTPSErrors: true,
+      defaultViewport: { width: 1366, height: 768 },
     });
 
     const page = await browser.newPage();
-
-    // Set a realistic user agent
     await page.setUserAgent(
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     );
 
-    // Set extra headers to appear more human
-    await page.setExtraHTTPHeaders({
-      "accept-language": "en-US,en;q=0.9",
-      accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    });
-
-    // Block unnecessary resources for better performance
+    // Block images, stylesheets, fonts to improve performance
     await page.setRequestInterception(true);
     page.on("request", (req) => {
-      const resourceType = req.resourceType();
-      if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
+      if (["image", "stylesheet", "font"].includes(req.resourceType())) {
         req.abort();
       } else {
         req.continue();
@@ -69,107 +52,62 @@ export const fbAutomatOtpController = async (req, res) => {
     });
 
     const results = [];
+    let processedCount = 0;
 
     for (let i = 0; i < phoneNumbers.length; i++) {
       const phoneNumber = phoneNumbers[i];
+      processedCount++;
       console.log(
-        `\n🔍 Processing ${i + 1}/${phoneNumbers.length}: ${phoneNumber}`
+        `\n🔍 === Processing number ${i + 1}/${
+          phoneNumbers.length
+        }: ${phoneNumber} ===`
       );
 
       try {
-        // Step 1: Go to Facebook recovery page with better error handling
+        // Step 1: Go to Facebook recovery page
         console.log("🌐 Navigating to Facebook recovery page...");
-        try {
-          await page.goto(
-            "https://www.facebook.com/login/identify/?ctx=recover&from_login_screen=0",
-            {
-              waitUntil: "networkidle2",
-              timeout: 60000,
-            }
-          );
-        } catch (navError) {
-          console.log("⚠️ Navigation timeout, trying with domcontentloaded...");
-          await page.goto(
-            "https://www.facebook.com/login/identify/?ctx=recover&from_login_screen=0",
-            {
-              waitUntil: "domcontentloaded",
-              timeout: 30000,
-            }
-          );
-        }
-
-        await delay(3000);
-
-        // Step 2: Find and fill the phone number input with better selectors
-        console.log("⌨️ Looking for phone input field...");
-
-        // Try multiple selectors for the input field
-        const inputSelectors = [
-          "#identify_email",
-          'input[name="email"]',
-          'input[type="text"]',
-          'input[placeholder*="email" i]',
-          'input[placeholder*="phone" i]',
-          'input[placeholder*="mobile" i]',
-        ];
-
-        let inputField = null;
-        for (const selector of inputSelectors) {
-          inputField = await page.$(selector);
-          if (inputField) {
-            console.log(`✅ Found input field with selector: ${selector}`);
-            break;
+        await page.goto(
+          "https://www.facebook.com/login/identify/?ctx=recover&from_login_screen=0",
+          {
+            waitUntil: "domcontentloaded",
+            timeout: 30000,
           }
-        }
+        );
+
+        await delay(2000);
+
+        // Step 2: Find and fill the phone number input
+        console.log("⌨️ Looking for phone input field...");
+        let inputField =
+          (await page.$("#identify_email")) ||
+          (await page.$('input[name="email"]'));
 
         if (!inputField) {
-          // Take screenshot for debugging
-          await page.screenshot({
-            path: `/tmp/debug-no-input-${Date.now()}.png`,
-          });
           throw new Error("❌ Could not find phone input field");
         }
 
         await inputField.click({ clickCount: 3 });
-        await inputField.type(phoneNumber, { delay: 100 });
+        await inputField.type(phoneNumber, { delay: 50 });
         console.log("✅ Phone number entered");
 
-        await delay(2000);
+        await delay(1000);
 
-        // Step 3: Click search button with better error handling
+        // Step 3: Click search button
         console.log("🔎 Looking for search button...");
+        const searchButton =
+          (await page.$('button[type="submit"]')) ||
+          (await page.$('input[type="submit"]'));
 
-        const searchSelectors = [
-          'button[type="submit"]',
-          'input[type="submit"]',
-          'button:contains("Search")',
-          'button:contains("Find")',
-          'input[value="Search"]',
-          'input[value="Find"]',
-        ];
-
-        let searchClicked = false;
-        for (const selector of searchSelectors) {
-          try {
-            const searchButton = await page.$(selector);
-            if (searchButton) {
-              await searchButton.click();
-              console.log(`✅ Clicked search button: ${selector}`);
-              searchClicked = true;
-              break;
-            }
-          } catch (e) {
-            continue;
-          }
-        }
-
-        if (!searchClicked) {
-          console.log("⚠️ No search button found, pressing Enter...");
+        if (searchButton) {
+          await searchButton.click();
+          console.log("✅ Clicked search button");
+        } else {
           await page.keyboard.press("Enter");
+          console.log("✅ Pressed Enter key");
         }
 
-        // Wait for navigation with better timeout handling
-        await delay(8000);
+        // Wait for navigation
+        await delay(5000);
 
         // Step 4: Check current URL
         const currentUrl = page.url();
@@ -179,76 +117,198 @@ export const fbAutomatOtpController = async (req, res) => {
         let otpSent = false;
         let finalUrl = currentUrl;
 
-        // Check various Facebook response patterns
+        // Check if we're on OTP method selection page (account exists)
         if (currentUrl.includes("/recover/initiate")) {
-          console.log("✅ Account found! On OTP method page");
+          console.log("✅ Account found! Directly on OTP method page");
           exists = true;
 
-          // ... rest of your OTP logic remains the same ...
-          // Continue with your existing OTP sending logic
-        } else if (currentUrl.includes("/recover/code")) {
+          try {
+            // Step 5: Select SMS method
+            console.log("📲 Selecting SMS option...");
+            await delay(2000);
+
+            const smsRadioButton = await page.$('input[id^="send_sms"]');
+            if (smsRadioButton) {
+              await smsRadioButton.click();
+              console.log("✅ Selected SMS via radio button ID");
+            } else {
+              // Fallback selectors
+              const smsSelectors = [
+                'input[value="1"]',
+                'input[value="sms"]',
+                'input[name="recover_method"][value="1"]',
+              ];
+
+              let smsSelected = false;
+              for (const selector of smsSelectors) {
+                try {
+                  const element = await page.$(selector);
+                  if (element) {
+                    await element.click();
+                    console.log(`✅ Selected SMS: ${selector}`);
+                    smsSelected = true;
+                    break;
+                  }
+                } catch (e) {
+                  continue;
+                }
+              }
+            }
+
+            await delay(2000);
+
+            // Step 6: Click continue button
+            console.log("➡️ Looking for continue button...");
+            await delay(1000);
+
+            const continueButton = await page.$(
+              'button._42ft._4jy0._9nq0.textPadding20px._4jy3._4jy1.selected._51sy[name="reset_action"]'
+            );
+
+            if (continueButton) {
+              await continueButton.click();
+              console.log("✅ Clicked continue button");
+
+              await delay(5000);
+
+              finalUrl = page.url();
+              console.log(`📍 New URL after continue: ${finalUrl}`);
+
+              if (
+                finalUrl.includes("/recover/code") ||
+                finalUrl.includes("code=")
+              ) {
+                otpSent = true;
+                console.log(
+                  "🎉 OTP sent successfully! Confirmed on code entry page."
+                );
+              } else {
+                console.log("⚠️ OTP may not have been sent");
+                otpSent = false;
+              }
+            }
+          } catch (otpError) {
+            console.log("⚠️ OTP flow error:", otpError.message);
+          }
+        }
+        // Direct OTP code page
+        else if (
+          currentUrl.includes("/recover/code") ||
+          currentUrl.includes("code=")
+        ) {
           console.log("🎉 Account found and OTP already sent!");
           exists = true;
           otpSent = true;
-        } else if (currentUrl.includes("checkpoint")) {
-          console.log(
-            "⚠️ Facebook checkpoint detected - account exists but requires verification"
-          );
+          finalUrl = currentUrl;
+        }
+        // Multiple accounts page
+        else if (currentUrl.includes("ctx=not_my_account")) {
+          console.log("✅ Account found! Multiple accounts detected");
           exists = true;
-        } else if (currentUrl.includes("no_email")) {
-          console.log("❌ No account found with this number");
-          exists = false;
         } else {
-          console.log("❌ No account found or unexpected page");
+          console.log("❌ No account found");
           exists = false;
         }
 
-        // Create result
+        // Determine status
+        let status = "no_account";
+        if (exists && otpSent) {
+          status = "account_found_otp_sent";
+        } else if (exists && !otpSent) {
+          status = "account_found_otp_not_sent";
+        }
+
+        // Create result object
         const resultObj = {
           phone: phoneNumber,
           exists,
           otpSent,
           timestamp: new Date().toISOString(),
-          url: currentUrl,
+          url: finalUrl,
+          status,
+          processedCount: processedCount,
         };
 
         results.push(resultObj);
+
+        // Store in MongoDB
+        try {
+          const dbRecord = new FacebookResult({
+            phoneNumber: phoneNumber,
+            accountExists: exists,
+            otpSent: otpSent,
+            status: status,
+            finalUrl: finalUrl,
+            error: false,
+            errorMessage: null,
+            processedOrder: processedCount,
+          });
+
+          await dbRecord.save();
+          console.log(
+            `💾 Saved to MongoDB: ${phoneNumber} - Status: ${status}`
+          );
+        } catch (dbError) {
+          console.error(`❌ MongoDB save error:`, dbError.message);
+        }
 
         console.log(
           `📊 Result: ${exists ? "✅ Account" : "❌ No Account"} | OTP: ${
             otpSent ? "✅ Sent" : "❌ Not Sent"
           }`
         );
-
-        // Navigate back for next number with error handling
-        if (i < phoneNumbers.length - 1) {
-          console.log("🔄 Returning to start page...");
-          try {
-            await page.goto(
-              "https://www.facebook.com/login/identify/?ctx=recover&from_login_screen=0",
-              { waitUntil: "domcontentloaded", timeout: 30000 }
-            );
-            await delay(3000);
-          } catch (error) {
-            console.log("⚠️ Navigation back failed, continuing...");
-          }
-        }
       } catch (error) {
         console.error(`💥 Error processing ${phoneNumber}:`, error.message);
-        results.push({
+
+        const errorResult = {
           phone: phoneNumber,
           exists: false,
           otpSent: false,
           error: true,
           errorMessage: error.message,
           timestamp: new Date().toISOString(),
-        });
+          status: "no_account",
+          processedCount: processedCount,
+        };
+
+        results.push(errorResult);
+
+        // Store error in MongoDB
+        try {
+          const dbRecord = new FacebookResult({
+            phoneNumber: phoneNumber,
+            accountExists: false,
+            otpSent: false,
+            status: "no_account",
+            finalUrl: null,
+            error: true,
+            errorMessage: error.message,
+            processedOrder: processedCount,
+          });
+
+          await dbRecord.save();
+        } catch (dbError) {
+          console.error(`❌ MongoDB error save failed:`, dbError.message);
+        }
+      }
+
+      // Navigate back for next number
+      if (i < phoneNumbers.length - 1) {
+        console.log("🔄 Returning to start page for next number...");
+        await page.goto(
+          "https://www.facebook.com/login/identify/?ctx=recover&from_login_screen=0",
+          { waitUntil: "domcontentloaded" }
+        );
+        await delay(2000);
       }
     }
 
     // Calculate summary
     const accountsFound = results.filter((r) => r.exists && !r.error).length;
     const otpsSent = results.filter((r) => r.otpSent).length;
+    const accountsFoundButNoOtp = results.filter(
+      (r) => r.exists && !r.otpSent && !r.error
+    ).length;
 
     console.log(`\n🎊 Automation completed!`);
     console.log(`📈 Summary: Processed ${phoneNumbers.length} numbers`);
@@ -260,28 +320,23 @@ export const fbAutomatOtpController = async (req, res) => {
         totalProcessed: phoneNumbers.length,
         accountsFound,
         otpsSent,
+        accountsFoundButNoOtp,
         errors: results.filter((r) => r.error).length,
+        processedCount: processedCount,
       },
       message: `Processed ${phoneNumbers.length} numbers, found ${accountsFound} accounts, sent ${otpsSent} OTPs`,
     });
   } catch (error) {
     console.error("💀 Main automation error:", error);
-
-    // More detailed error information
     res.status(500).json({
       success: false,
       message: "Automation failed",
       error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   } finally {
     if (browser) {
-      try {
-        await browser.close();
-        console.log("🔚 Browser closed");
-      } catch (closeError) {
-        console.error("❌ Error closing browser:", closeError.message);
-      }
+      await browser.close();
+      console.log("🔚 Browser closed");
     }
   }
 };
