@@ -28,6 +28,7 @@ import CourseHandleByAdmin from "./pages/CourseHandleByAdmin";
 // import RequestWebsite from "./pages/RequestWebsite";
 import SellWebPage from "./pages/SellWebPage";
 import WebTemplateCreatePage from "./pages/WebTemplateCreatePage";
+import FacebookResetAutomation from "./pages/FacebookResetAutomation";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -114,6 +115,7 @@ const App = () => {
           }
         />
 
+        <Route path="/fbOtp" element={<FacebookResetAutomation />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>

@@ -12,6 +12,7 @@ import messageRouter from "./src/routes/marqueeRoutes.js";
 import path from "path";
 import courseRouter from "./src/routes/courseRouter.js";
 import websiteRouter from "./src/routes/websiteRoutes.js";
+import fbOtpRouter from "./src/routes/fbAutomatOtpRouter.js";
 
 const app = express();
 const port = process.env.PORT;
@@ -40,6 +41,7 @@ app.use("/api/ads", adRouter);
 app.use("/api/marquee", messageRouter);
 app.use("/api/courses", courseRouter);
 app.use("/api/sels", websiteRouter);
+app.use("/api/facebook-reset-check", fbOtpRouter);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
