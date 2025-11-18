@@ -9,8 +9,5 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "puppeteer-core": "^24.30.0"
-  }
+  "license": "ISC"
 }
