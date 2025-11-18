@@ -17,24 +17,21 @@ export const fbAutomatOtpController = async (req, res) => {
   console.log(`📱 Processing ${phoneNumbers.length} phone numbers`);
 
   let browser;
-
   try {
-    // Run in headless mode to hide the browser window
-    browser = await puppeteer.launch({
-      headless: true, // Changed to true to hide browser window
+    const launchOptions = {
+      headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
         "--disable-gpu",
-        "--disable-web-security",
-        "--disable-features=VizDisplayCompositor",
+        "--no-zygote",
       ],
-      defaultViewport: { width: 1366, height: 768 },
-    });
+    };
+
+    console.log(`🔧 Launching puppeteer in ${process.env.NODE_ENV} mode...`);
+
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     await page.setUserAgent(
