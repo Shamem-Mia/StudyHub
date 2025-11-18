@@ -5,15 +5,21 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 
 WORKDIR /usr/src/app
 
-# switch to root to avoid permission issue
 USER root
 
+# Copy root package.json
 COPY package*.json ./
+
+# Install dependencies for backend + frontend
 RUN npm install
 
+# Copy all project files
 COPY . .
 
-# drop back to normal user
+# Build frontend (this uses your script)
+RUN npm run build
+
 USER pptruser
 
-CMD ["npm", "start"]
+# Start backend
+CMD ["npm", "run", "start"]
