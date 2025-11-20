@@ -13,6 +13,7 @@ import {
   Users,
   MessageCircle,
   AlertCircle,
+  Shield,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../context/axiosInstance";
@@ -124,10 +125,9 @@ const FacebookResetAutomation = () => {
   const clearCategory = (category) => {
     setResults((prev) =>
       prev.filter((result) => {
-        if (category === "otpSent") return !result.otpSent;
-        if (category === "accountNoOtp")
-          return !(result.exists && !result.otpSent);
+        if (category === "accountFound") return !result.exists;
         if (category === "noAccount") return result.exists;
+        if (category === "errors") return !result.error;
         return true;
       })
     );
@@ -141,16 +141,13 @@ const FacebookResetAutomation = () => {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "facebook-reset-results.json";
+    link.download = "facebook-account-check-results.json";
     link.click();
     URL.revokeObjectURL(url);
   };
 
   // Filter results by category
-  const otpSentResults = results.filter((r) => r.otpSent && !r.error);
-  const accountNoOtpResults = results.filter(
-    (r) => r.exists && !r.otpSent && !r.error
-  );
+  const accountFoundResults = results.filter((r) => r.exists && !r.error);
   const noAccountResults = results.filter((r) => !r.exists && !r.error);
   const errorResults = results.filter((r) => r.error);
 
@@ -160,13 +157,13 @@ const FacebookResetAutomation = () => {
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-xl shadow-lg mb-8 text-white">
           <div className="flex items-center gap-3">
-            <Search size={28} className="text-white" />
+            <Shield size={28} className="text-white" />
             <div>
               <h1 className="text-2xl font-bold">
-                Facebook Password Reset Automation
+                For Legal Use - Find Account with Your Phone Number
               </h1>
               <p className="text-blue-100 mt-1">
-                Check phone numbers and receive OTP notifications
+                Check if phone numbers have Facebook accounts
               </p>
             </div>
           </div>
@@ -192,27 +189,13 @@ const FacebookResetAutomation = () => {
             <div className="bg-white rounded-lg p-4 shadow-md border">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-full">
-                  <MessageCircle className="text-green-600" size={20} />
+                  <CheckCircle className="text-green-600" size={20} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-800">
-                    {otpSentResults.length}
+                    {accountFoundResults.length}
                   </p>
-                  <p className="text-sm text-gray-600">OTP Sent</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 shadow-md border">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-100 rounded-full">
-                  <AlertCircle className="text-yellow-600" size={20} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {accountNoOtpResults.length}
-                  </p>
-                  <p className="text-sm text-gray-600">Account No OTP</p>
+                  <p className="text-sm text-gray-600">Accounts Found</p>
                 </div>
               </div>
             </div>
@@ -224,9 +207,23 @@ const FacebookResetAutomation = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-800">
-                    {noAccountResults.length + errorResults.length}
+                    {noAccountResults.length}
                   </p>
-                  <p className="text-sm text-gray-600">No Account/Errors</p>
+                  <p className="text-sm text-gray-600">No Account</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 shadow-md border">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-100 rounded-full">
+                  <AlertCircle className="text-yellow-600" size={20} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {errorResults.length}
+                  </p>
+                  <p className="text-sm text-gray-600">Errors</p>
                 </div>
               </div>
             </div>
@@ -278,7 +275,7 @@ const FacebookResetAutomation = () => {
                   )}
                   {loading
                     ? `Processing... (${processedCount}/${phoneNumbers.length})`
-                    : "Start Automation"}
+                    : "Start Account Check"}
                 </button>
 
                 {isRunning && (
@@ -287,7 +284,7 @@ const FacebookResetAutomation = () => {
                     className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-all flex items-center justify-center gap-2"
                   >
                     <XCircle size={20} />
-                    Stop Automation
+                    Stop Check
                   </button>
                 )}
 
@@ -305,7 +302,7 @@ const FacebookResetAutomation = () => {
               <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-800">
-                    Numbers to Process ({phoneNumbers.length})
+                    Numbers to Check ({phoneNumbers.length})
                   </h2>
                   <button
                     onClick={() => setPhoneNumbers([])}
@@ -354,19 +351,11 @@ const FacebookResetAutomation = () => {
               {results.length > 0 && (
                 <div className="flex gap-2 mb-6 overflow-x-auto">
                   <button
-                    onClick={() => clearCategory("otpSent")}
+                    onClick={() => clearCategory("accountFound")}
                     className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium"
                   >
-                    <MessageCircle size={16} />
-                    OTP Sent ({otpSentResults.length})
-                    <XCircle size={14} />
-                  </button>
-                  <button
-                    onClick={() => clearCategory("accountNoOtp")}
-                    className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-2 rounded-lg text-sm font-medium"
-                  >
-                    <AlertCircle size={16} />
-                    Account No OTP ({accountNoOtpResults.length})
+                    <CheckCircle size={16} />
+                    Accounts Found ({accountFoundResults.length})
                     <XCircle size={14} />
                   </button>
                   <button
@@ -377,6 +366,14 @@ const FacebookResetAutomation = () => {
                     No Account ({noAccountResults.length})
                     <XCircle size={14} />
                   </button>
+                  <button
+                    onClick={() => clearCategory("errors")}
+                    className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 py-2 rounded-lg text-sm font-medium"
+                  >
+                    <AlertCircle size={16} />
+                    Errors ({errorResults.length})
+                    <XCircle size={14} />
+                  </button>
                 </div>
               )}
 
@@ -385,7 +382,7 @@ const FacebookResetAutomation = () => {
                   <div className="text-center py-8 text-gray-500">
                     <Phone size={48} className="mx-auto mb-3 text-gray-300" />
                     <p>
-                      No results yet. Add phone numbers and start automation.
+                      No results yet. Add phone numbers and start account check.
                     </p>
                   </div>
                 ) : (
@@ -393,36 +390,36 @@ const FacebookResetAutomation = () => {
                     <div
                       key={index}
                       className={`p-4 rounded-lg border ${
-                        result.otpSent
+                        result.exists && !result.error
                           ? "bg-green-50 border-green-200"
-                          : result.exists
-                          ? "bg-yellow-50 border-yellow-200"
-                          : "bg-red-50 border-red-200"
+                          : !result.exists && !result.error
+                          ? "bg-red-50 border-red-200"
+                          : "bg-yellow-50 border-yellow-200"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div
                             className={`p-2 rounded-full ${
-                              result.otpSent
+                              result.exists && !result.error
                                 ? "bg-green-100"
-                                : result.exists
-                                ? "bg-yellow-100"
-                                : "bg-red-100"
+                                : !result.exists && !result.error
+                                ? "bg-red-100"
+                                : "bg-yellow-100"
                             }`}
                           >
-                            {result.otpSent ? (
-                              <MessageCircle
+                            {result.exists && !result.error ? (
+                              <CheckCircle
                                 size={20}
                                 className="text-green-600"
                               />
-                            ) : result.exists ? (
+                            ) : !result.exists && !result.error ? (
+                              <XCircle size={20} className="text-red-600" />
+                            ) : (
                               <AlertCircle
                                 size={20}
                                 className="text-yellow-600"
                               />
-                            ) : (
-                              <XCircle size={20} className="text-red-600" />
                             )}
                           </div>
                           <div>
@@ -437,18 +434,18 @@ const FacebookResetAutomation = () => {
                         <div className="flex items-center gap-2">
                           <span
                             className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              result.otpSent
+                              result.exists && !result.error
                                 ? "bg-green-100 text-green-800"
-                                : result.exists
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                : !result.exists && !result.error
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
                             }`}
                           >
-                            {result.otpSent
-                              ? "OTP Sent"
-                              : result.exists
+                            {result.exists && !result.error
                               ? "Account Found"
-                              : "No Account"}
+                              : !result.exists && !result.error
+                              ? "No Account"
+                              : "Error"}
                           </span>
                           <button
                             onClick={() => deleteResult(index)}
